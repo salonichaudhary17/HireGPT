@@ -1,0 +1,383 @@
+/* ========================================================= */
+/* Base                                                       */
+/* ========================================================= */
+
+.allapp-page {
+  min-height: 100vh;
+  background: #0f1016;
+  color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ========================================================= */
+/* Navbar                                                     */
+/* ========================================================= */
+
+.allapp-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 40px;
+  background: #14151d;
+  border-bottom: 1px solid #292d38;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.allapp-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f5f5f5;
+  text-decoration: none;
+}
+
+.allapp-logo span {
+  color: #8b5cf6;
+}
+
+.allapp-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.allapp-nav-links a {
+  color: #a0a3b1;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.allapp-nav-links a:hover {
+  color: #f5f5f5;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 1px solid #292d38;
+  margin-left: 8px;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-profile span {
+  font-size: 14px;
+  color: #e5e7eb;
+  white-space: nowrap;
+}
+
+.logout-button {
+  background: #1c1e28;
+  border: 1px solid #292d38;
+  color: #d1d3db;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background: #242735;
+  border-color: #3a3f4f;
+}
+
+/* ========================================================= */
+/* Content                                                    */
+/* ========================================================= */
+
+.allapp-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.allapp-back-link {
+  display: inline-block;
+  color: #a0a3b1;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 24px;
+  transition: color 0.2s ease;
+}
+
+.allapp-back-link:hover {
+  color: #f5f5f5;
+}
+
+/* ========================================================= */
+/* Header                                                     */
+/* ========================================================= */
+
+.allapp-header {
+  margin-bottom: 28px;
+}
+
+.allapp-badge {
+  color: #a0a3b1;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin: 0 0 12px;
+}
+
+.allapp-header h1 {
+  font-size: 34px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.25;
+}
+
+.allapp-subtitle {
+  color: #a0a3b1;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* ========================================================= */
+/* Filter tabs                                                */
+/* ========================================================= */
+
+.allapp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.filter-tab {
+  background: #171921;
+  border: 1px solid #292d38;
+  color: #a0a3b1;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.filter-tab:hover {
+  border-color: #3a3f4f;
+  color: #d1d3db;
+}
+
+.filter-tab-active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+  color: white;
+}
+
+.filter-tab-active:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: white;
+}
+
+/* ========================================================= */
+/* Loading / Empty                                            */
+/* ========================================================= */
+
+.allapp-loading,
+.allapp-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a0a3b1;
+  background: #171921;
+  border: 1px solid #292d38;
+  border-radius: 16px;
+}
+
+.allapp-empty h3 {
+  color: #f5f5f5;
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.allapp-empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ========================================================= */
+/* Applicant list                                             */
+/* ========================================================= */
+
+.allapp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.allapp-card {
+  background: #171921;
+  border: 1px solid #292d38;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1.6fr 1.4fr 1fr auto;
+  align-items: center;
+  gap: 20px;
+  transition: border-color 0.2s ease;
+}
+
+.allapp-card:hover {
+  border-color: #8b5cf6;
+}
+
+.allapp-candidate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.allapp-candidate h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.allapp-email {
+  color: #a0a3b1;
+  font-size: 13px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allapp-job-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.allapp-job-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #e5e7eb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allapp-job-company {
+  font-size: 13px;
+  color: #a0a3b1;
+}
+
+.allapp-date {
+  font-size: 13.5px;
+  color: #a0a3b1;
+  white-space: nowrap;
+}
+
+.allapp-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.status-applied {
+  background: #242735;
+  color: #c4b5fd;
+}
+
+.status-shortlisted {
+  background: #1e2f3d;
+  color: #60a5fa;
+}
+
+.status-interview {
+  background: #3a2f1a;
+  color: #fbbf24;
+}
+
+.status-selected {
+  background: #1a3324;
+  color: #34d399;
+}
+
+.status-rejected {
+  background: #3a1a1f;
+  color: #f87171;
+}
+
+.allapp-status select {
+  background: #08090d;
+  color: #f5f5f5;
+  border: 1px solid #30333e;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.allapp-status select:focus {
+  border-color: #7c6cff;
+}
+
+/* ========================================================= */
+/* Responsive                                                 */
+/* ========================================================= */
+
+@media (max-width: 900px) {
+  .allapp-navbar {
+    padding: 16px 20px;
+  }
+
+  .allapp-content {
+    padding: 32px 16px 60px;
+  }
+
+  .allapp-card {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .allapp-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .user-profile span {
+    display: none;
+  }
+
+  .allapp-header h1 {
+    font-size: 26px;
+  }
+}

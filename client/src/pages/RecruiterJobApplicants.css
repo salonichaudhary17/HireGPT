@@ -1,0 +1,345 @@
+/* ========================================================= */
+/* Base                                                       */
+/* ========================================================= */
+
+.rjob-page {
+  min-height: 100vh;
+  background: #0f1016;
+  color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ========================================================= */
+/* Navbar                                                     */
+/* ========================================================= */
+
+.rjob-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 40px;
+  background: #14151d;
+  border-bottom: 1px solid #292d38;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.rjob-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f5f5f5;
+  text-decoration: none;
+}
+
+.rjob-logo span {
+  color: #8b5cf6;
+}
+
+.rjob-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.rjob-nav-links a {
+  color: #a0a3b1;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.rjob-nav-links a:hover {
+  color: #f5f5f5;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+  border-left: 1px solid #292d38;
+  margin-left: 8px;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-profile span {
+  font-size: 14px;
+  color: #e5e7eb;
+  white-space: nowrap;
+}
+
+.logout-button {
+  background: #1c1e28;
+  border: 1px solid #292d38;
+  color: #d1d3db;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.logout-button:hover {
+  background: #242735;
+  border-color: #3a3f4f;
+}
+
+/* ========================================================= */
+/* Content                                                    */
+/* ========================================================= */
+
+.rjob-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.rjob-back-link {
+  display: inline-block;
+  color: #a0a3b1;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 24px;
+  transition: color 0.2s ease;
+}
+
+.rjob-back-link:hover {
+  color: #f5f5f5;
+}
+
+.rjob-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a0a3b1;
+}
+
+/* ========================================================= */
+/* Header                                                     */
+/* ========================================================= */
+
+.rjob-header {
+  margin-bottom: 40px;
+}
+
+.rjob-badge {
+  color: #a0a3b1;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin: 0 0 12px;
+}
+
+.rjob-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.rjob-subtitle {
+  color: #a0a3b1;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* ========================================================= */
+/* Applicants section                                         */
+/* ========================================================= */
+
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.section-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.section-header p {
+  color: #a0a3b1;
+  font-size: 14px;
+  margin: 0;
+}
+
+.rjob-applicant-count {
+  color: #c4b5fd;
+  background: #242735;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.rjob-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a0a3b1;
+  background: #171921;
+  border: 1px solid #292d38;
+  border-radius: 16px;
+}
+
+.rjob-empty h3 {
+  color: #f5f5f5;
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.rjob-empty p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ========================================================= */
+/* Applicant cards                                            */
+/* ========================================================= */
+
+.rjob-applicants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rjob-applicant-card {
+  background: #171921;
+  border: 1px solid #292d38;
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  transition: border-color 0.2s ease;
+}
+
+.rjob-applicant-card:hover {
+  border-color: #8b5cf6;
+}
+
+.rjob-applicant-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rjob-applicant-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 3px;
+}
+
+.rjob-applicant-email {
+  color: #a0a3b1;
+  font-size: 13.5px;
+  margin: 0 0 3px;
+}
+
+.rjob-applicant-date {
+  color: #7a7d8a;
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.rjob-applicant-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-badge {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.status-applied {
+  background: #242735;
+  color: #c4b5fd;
+}
+
+.status-shortlisted {
+  background: #1e2f3d;
+  color: #60a5fa;
+}
+
+.status-interview {
+  background: #3a2f1a;
+  color: #fbbf24;
+}
+
+.status-selected {
+  background: #1a3324;
+  color: #34d399;
+}
+
+.status-rejected {
+  background: #3a1a1f;
+  color: #f87171;
+}
+
+.rjob-applicant-status select {
+  background: #08090d;
+  color: #f5f5f5;
+  border: 1px solid #30333e;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  cursor: pointer;
+  outline: none;
+}
+
+.rjob-applicant-status select:focus {
+  border-color: #7c6cff;
+}
+
+/* ========================================================= */
+/* Responsive                                                 */
+/* ========================================================= */
+
+@media (max-width: 640px) {
+  .rjob-navbar {
+    padding: 16px 20px;
+  }
+
+  .rjob-content {
+    padding: 32px 16px 60px;
+  }
+
+  .user-profile span {
+    display: none;
+  }
+
+  .rjob-applicant-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .rjob-applicant-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
