@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 
@@ -41,8 +42,8 @@ function AuthPage() {
 
     try {
       const endpoint = isLogin
-          ? `${import.meta.env.VITE_API_URL}/api/auth/login`
-          : `${import.meta.env.VITE_API_URL}/api/auth/register`;
+  ? `${API_URL}/api/auth/login`
+  : `${API_URL}/api/auth/register`;
       const body = isLogin
         ? {
             email: formData.email,
