@@ -41,9 +41,8 @@ function AuthPage() {
 
     try {
       const endpoint = isLogin
-         ? "https://hiregpt-gb3b.onrender.com/api/auth/login"
-        : "https://hiregpt-gb3b.onrender.com/api/auth/register";
-
+          ? `${import.meta.env.VITE_API_URL}/api/auth/login`
+          : `${import.meta.env.VITE_API_URL}/api/auth/register`;
       const body = isLogin
         ? {
             email: formData.email,

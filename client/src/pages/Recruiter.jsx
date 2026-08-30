@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Recruiter.css";
@@ -39,7 +40,7 @@ function Recruiter() {
   const fetchMyJobs = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8000/api/jobs/my-jobs",
+        `${API_URL}/api/jobs/my-jobs`,
         {
           method: "GET",
           headers: {
@@ -62,7 +63,7 @@ const applicationData = await Promise.all(
   myJobs.map(async (job) => {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/applications/job/${job._id}`,
+        `${API_URL}/api/applications/job/${job._id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -212,8 +213,8 @@ setAnalytics({
       const isEditing = Boolean(editingJobId);
 
       const url = isEditing
-        ? `http://localhost:8000/api/jobs/${editingJobId}`
-        : "http://localhost:8000/api/jobs";
+  ? `${API_URL}/api/jobs/${editingJobId}`
+  : `${API_URL}/api/jobs`;
 
       const method = isEditing ? "PUT" : "POST";
 
@@ -266,7 +267,7 @@ setAnalytics({
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/jobs/${jobId}`,
+        `${API_URL}/api/jobs/${jobId}`,
         {
           method: "DELETE",
           headers: {

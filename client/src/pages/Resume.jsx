@@ -91,7 +91,7 @@ function Resume() {
       formData.append("resume", file);
 
       const response = await fetch(
-        "http://localhost:8000/api/resumes/upload",
+        `${import.meta.env.VITE_API_URL}/api/resumes/upload`,
         {
           method: "POST",
           headers: {
@@ -138,7 +138,7 @@ function Resume() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/ai/generate-questions",
+        `${import.meta.env.VITE_API_URL}/api/resumes/upload`,
         {
           method: "POST",
           headers: {
@@ -235,7 +235,7 @@ function Resume() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/api/ai/evaluate",
+        `${import.meta.env.VITE_API_URL}/api/ai/evaluate`,
         {
           method: "POST",
           headers: {

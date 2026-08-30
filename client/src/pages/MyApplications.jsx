@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./MyApplications.css";
@@ -14,7 +15,7 @@ function MyApplications() {
   const fetchApplications = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8000/api/applications/my-applications",
+        `${API_URL}/api/applications/my-applications`,
         {
           method: "GET",
           headers: {

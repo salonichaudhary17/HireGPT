@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Dashboard.css";
@@ -26,7 +27,7 @@ function Dashboard() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/jobs", {
+      const response = await fetch(`${API_URL}/api/jobs`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -52,7 +53,7 @@ function Dashboard() {
   const fetchApplications = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8000/api/applications/my-applications",
+        `${API_URL}/api/applications/my-applications`,
         {
           method: "GET",
           headers: {
@@ -98,7 +99,7 @@ function Dashboard() {
   const handleApply = async (jobId) => {
     try {
       const response = await fetch(
-        "http://localhost:8000/api/applications",
+        `${API_URL}/api/applications`,
         {
           method: "POST",
           headers: {

@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./AllApplicants.css";
@@ -24,7 +25,7 @@ function AllApplicants() {
   const fetchAllApplicants = async () => {
     try {
       const jobsResponse = await fetch(
-        "http://localhost:8000/api/jobs/my-jobs",
+        `${API_URL}/api/jobs/my-jobs`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -44,7 +45,7 @@ function AllApplicants() {
         myJobs.map(async (job) => {
           try {
             const res = await fetch(
-              `http://localhost:8000/api/applications/job/${job._id}`,
+              `${API_URL}/api/applications/job/${job._id}`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
@@ -92,7 +93,7 @@ function AllApplicants() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/applications/${applicationId}/status`,
+        `${API_URL}/api/applications/${applicationId}/status`,
         {
           method: "PATCH",
           headers: {

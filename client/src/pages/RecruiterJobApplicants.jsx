@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import "./RecruiterJobApplicants.css";
@@ -24,7 +25,7 @@ function RecruiterJobApplicants() {
   const fetchApplicants = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/applications/job/${jobId}`,
+        `${API_URL}/api/applications/job/${jobId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -64,7 +65,7 @@ function RecruiterJobApplicants() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/applications/${applicationId}/status`,
+        `${API_URL}/api/applications/${applicationId}/status`,
         {
           method: "PATCH",
           headers: {
