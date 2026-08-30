@@ -41,8 +41,8 @@ function AuthPage() {
 
     try {
       const endpoint = isLogin
-        ? "http://localhost:8000/api/auth/login"
-        : "http://localhost:8000/api/auth/register";
+         ? "https://hiregpt-gb3b.onrender.com/api/auth/login"
+        : "https://hiregpt-gb3b.onrender.com/api/auth/register";
 
       const body = isLogin
         ? {
