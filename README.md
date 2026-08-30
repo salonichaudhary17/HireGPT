@@ -1,131 +1,84 @@
-# HireGPT 🚀
+# HireGPT 🤖
 
-AI-powered recruitment platform built with the MERN stack, featuring resume-based AI interviews, RAG-powered intelligence, application management, recruiter analytics, and email alerts.
+An AI-powered recruitment platform built with the MERN stack and Generative AI.
 
----
+HireGPT connects recruiters and candidates through job management, resume analysis, AI-powered interviews, application tracking, and recruitment analytics.
 
-## 🌟 Overview
+## 🚀 Features
 
-HireGPT is a full-stack recruitment platform designed to connect candidates and recruiters through a modern hiring workflow.
+### 👨‍💼 Recruiter
+- Post, edit, and delete jobs
+- View applicants for each job
+- Track application statuses
+- Application analytics and charts
+- Candidate pipeline tracking
+- Email alerts
 
-Candidates can discover jobs, apply for positions, upload resumes, and participate in AI-powered interviews.
-
-Recruiters can post jobs, manage applicants, review candidate applications, and track recruitment analytics.
-
----
-
-## ✨ Features
-
-### 👨‍💻 Candidate
-
+### 👩‍💻 Candidate
 - Browse available jobs
-- Search jobs by title, company, and skills
-- Filter jobs by location and skills
 - Apply for jobs
-- Track submitted applications
-- View application status
-- Upload and manage resume
-- AI-powered resume-based interviews
-- AI-generated interview feedback
-- Resume parsing and analysis
-
-### 🧑‍💼 Recruiter
-
-- Create and manage job postings
-- View applicants for posted jobs
-- Manage candidate application status
-- Shortlist candidates
-- Track recruitment pipeline
-- Application analytics
-- Candidate management
+- Track applications
+- Upload resumes
+- Resume analysis
+- AI-powered interviews
+- Interview feedback
 
 ### 🤖 AI Features
-
-- AI-powered interviews
-- Resume-based interview questions
-- AI-generated interview evaluation
-- Resume parsing
+- Resume analysis using Generative AI
+- AI-powered interview generation
+- AI interview evaluation
+- Resume-based AI interactions
 - Retrieval-Augmented Generation (RAG)
-- Resume/document embeddings
-- Gemini-powered AI services
-
-### 📊 Analytics
-
-Recruiters can monitor their hiring pipeline through analytics including:
-
-- Total applications
-- Shortlisted candidates
-- Interviews
-- Selected candidates
-- Rejected candidates
-- Applicants per job
-- Application pipeline
-
-### 📧 Email Alerts
-
-HireGPT includes email notification functionality for important recruitment events.
-
----
 
 ## 🛠️ Tech Stack
 
 ### Frontend
-
-- React.js
-- Vite
-- JavaScript
-- CSS
+- React
 - React Router
+- Vite
+- CSS
 
 ### Backend
-
 - Node.js
 - Express.js
 - MongoDB
 - Mongoose
 - JWT Authentication
 
-### AI & Data
-
+### AI
 - Google Gemini
+- Generative AI
 - RAG
 - Embeddings
-- Resume parsing
 
 ### Other
+- Nodemailer
+- Multer
+- PDF parsing
+- Docker
+- Docker Compose
 
-- Email notifications
-- REST APIs
-- Git & GitHub
-
----
-
-## 📁 Project Structure
+## 🏗️ Project Structure
 
 ```text
 HireGPT/
-│
 ├── client/
-│   ├── public/
-│   └── src/
-│       ├── assets/
-│       ├── components/
-│       ├── pages/
-│       ├── App.jsx
-│       ├── App.css
-│       └── index.css
+│   ├── src/
+│   │   ├── components/
+│   │   └── pages/
+│   ├── Dockerfile
+│   └── package.json
 │
 ├── server/
-│   ├── config/
 │   ├── controllers/
-│   ├── data/
-│   ├── middleware/
 │   ├── models/
 │   ├── routes/
 │   ├── services/
-│   ├── fixIndex.js
-│   ├── seed.js
-│   └── server.js
+│   ├── middleware/
+│   ├── Dockerfile
+│   └── package.json
 │
+├── docker-compose.yml
+├── .env.example
 ├── .gitignore
 └── README.md
