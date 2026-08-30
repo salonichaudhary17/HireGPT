@@ -1,4 +1,3 @@
-const API_URL = import.meta.env.VITE_API_URL;
 import { useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 
@@ -11,6 +10,8 @@ import RecruiterJobApplicants from "./pages/RecruiterJobApplicants";
 import AllApplicants from "./pages/AllApplicants";
 import Resume from "./pages/Resume";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -59,7 +60,20 @@ function AuthPage() {
         body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      // Read the raw text first — calling response.json() directly throws
+      // a cryptic "Unexpected end of JSON input" if the body is empty,
+      // which happens if the backend is cold-starting (e.g. Render free
+      // tier waking up) or crashes before sending a response.
+      const rawText = await response.text();
+
+      let data;
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error(
+          "The server sent back an unexpected response. If this is your first request in a while, the backend may still be waking up — please wait a few seconds and try again."
+        );
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Something went wrong");

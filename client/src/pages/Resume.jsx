@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import "./Resume.css";
 
 function Resume() {
+  const [navOpen, setNavOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -705,54 +706,36 @@ const handleDownloadReport = () => {
 
       <nav className="resume-navbar">
 
-        <Link
-          to="/dashboard"
-          className="resume-logo"
-        >
-          Hire<span>GPT</span>
-        </Link>
+  <Link to="/dashboard" className="resume-logo">
+    Hire<span>GPT</span>
+  </Link>
 
-        <div className="resume-nav-links">
+  <button
+    className={`mobile-menu-btn ${navOpen ? "open" : ""}`}
+    onClick={() => setNavOpen(!navOpen)}
+    aria-label="Toggle menu"
+  >
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
 
-          <Link to="/dashboard">
-            Jobs
-          </Link>
+  <div className={`resume-nav-links ${navOpen ? "nav-open" : ""}`}>
 
-          <Link to="/applications">
-            Applications
-          </Link>
+    <Link to="/dashboard" onClick={() => setNavOpen(false)}>Jobs</Link>
+    <Link to="/applications" onClick={() => setNavOpen(false)}>Applications</Link>
+    <Link to="/resume" className="active" onClick={() => setNavOpen(false)}>AI Interview</Link>
 
-          <Link
-            to="/resume"
-            className="active"
-          >
-            AI Interview
-          </Link>
+    <div className="user-profile">
+      <div className="user-avatar">{user?.name?.charAt(0).toUpperCase()}</div>
+      <span>{user?.name || "User"}</span>
+    </div>
 
-          <div className="user-profile">
+    <button className="logout-button" onClick={handleLogout}>Logout</button>
 
-            <div className="user-avatar">
-              {user?.name
-                ?.charAt(0)
-                .toUpperCase()}
-            </div>
+  </div>
 
-            <span>
-              {user?.name || "User"}
-            </span>
-
-          </div>
-
-          <button
-            className="logout-button"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-
-        </div>
-
-      </nav>
+</nav>
 
       {/* ================= MAIN ================= */}
 
