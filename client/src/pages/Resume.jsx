@@ -124,54 +124,54 @@ function Resume() {
   ========================= */
 
   const handleGenerateQuestions = async () => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-    if (!token) {
-      setError("You are not logged in.");
-      return;
-    }
+  if (!token) {
+    setError("You are not logged in.");
+    return;
+  }
 
-    setGenerating(true);
-    setMessage("");
-    setError("");
-    setQuestions([]);
-    setEvaluation(null);
+  setGenerating(true);
+  setMessage("");
+  setError("");
+  setQuestions([]);
+  setEvaluation(null);
 
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/resumes/upload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to generate questions"
-        );
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/ai/generate-questions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
+    );
 
-      setQuestions(data.questions);
+    const data = await response.json();
 
-      setMessage(
-        "Interview questions generated successfully!"
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to generate questions"
       );
-    } catch (error) {
-      console.error(
-        "Question generation error:",
-        error
-      );
-
-      setError(error.message);
-    } finally {
-      setGenerating(false);
     }
-  };
+
+    setQuestions(data.questions || []);
+
+    setMessage(
+      "Interview questions generated successfully!"
+    );
+  } catch (error) {
+    console.error(
+      "Question generation error:",
+      error
+    );
+
+    setError(error.message);
+  } finally {
+    setGenerating(false);
+  }
+};
 
   /* =========================
      START INTERVIEW
