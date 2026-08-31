@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import Resume from "../models/Resume.js";
+import { callGeminiWithRetry } from "../utils/geminiErrorHandler.js";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -43,13 +44,17 @@ GENERATE QUERY EMBEDDING
 */
 
 async function generateQueryEmbedding(query) {
-  const response = await ai.models.embedContent({
-    model: "gemini-embedding-001",
-    contents: query,
-    config: {
-      outputDimensionality: 768,
-    },
-  });
+  const response = await callGeminiWithRetry(
+    () =>
+      ai.models.embedContent({
+        model: "gemini-embedding-001",
+        contents: query,
+        config: {
+          outputDimensionality: 768,
+        },
+      }),
+    "searching your resume"
+  );
 
   return response.embeddings?.[0]?.values || [];
 }

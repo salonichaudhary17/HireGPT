@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { evaluateInterview } from "../services/geminiService.js";
 import { retrieveRelevantChunks } from "../services/ragService.js";
+import { callGeminiWithRetry } from "../utils/geminiErrorHandler.js";
 
 const router = express.Router();
 
@@ -178,14 +179,17 @@ Example:
       -------------------------------------------------------
       */
 
-      const response =
-        await ai.models.generateContent({
-          model: "gemini-3.6-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json",
-          },
-        });
+      const response = await callGeminiWithRetry(
+        () =>
+          ai.models.generateContent({
+            model: "gemini-3.6-flash",
+            contents: prompt,
+            config: {
+              responseMimeType: "application/json",
+            },
+          }),
+        "generating your interview questions"
+      );
 
       /*
       -------------------------------------------------------

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { callGeminiWithRetry } from "../utils/geminiErrorHandler.js";
 
 // =====================================================
 // GEMINI AI
@@ -82,14 +83,18 @@ export async function generateEmbedding(text) {
     throw new Error("Cannot generate embedding for empty text");
   }
 
-  const result = await ai.models.embedContent({
-    model: EMBEDDING_MODEL,
-    contents: cleanedText,
+  const result = await callGeminiWithRetry(
+    () =>
+      ai.models.embedContent({
+        model: EMBEDDING_MODEL,
+        contents: cleanedText,
 
-    config: {
-      outputDimensionality: EMBEDDING_DIMENSIONS,
-    },
-  });
+        config: {
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+        },
+      }),
+    "generating your resume embeddings"
+  );
 
   if (
     !result ||
@@ -117,6 +122,13 @@ export async function generateEmbedding(text) {
 // GENERATE EMBEDDINGS FOR ALL CHUNKS
 // =====================================================
 
+// How many chunks to embed at the same time. Doing this fully
+// sequentially (one Gemini call, then the next, then the next...)
+// can take well over a minute for longer resumes and risks the
+// request timing out. Running a small batch concurrently instead
+// keeps this fast while staying well under typical rate limits.
+const EMBEDDING_BATCH_SIZE = 5;
+
 export async function generateEmbeddings(chunks) {
   if (!Array.isArray(chunks)) {
     throw new Error("Chunks must be an array");
@@ -127,19 +139,23 @@ export async function generateEmbeddings(chunks) {
   }
 
   console.log(
-    `Generating embeddings for ${chunks.length} chunks...`
+    `Generating embeddings for ${chunks.length} chunks (batches of ${EMBEDDING_BATCH_SIZE})...`
   );
 
   const embeddings = [];
 
-  for (let i = 0; i < chunks.length; i++) {
+  for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+    const batch = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+
     console.log(
-      `Embedding chunk ${i + 1}/${chunks.length}...`
+      `Embedding batch ${Math.floor(i / EMBEDDING_BATCH_SIZE) + 1} (chunks ${i + 1}-${i + batch.length} of ${chunks.length})...`
     );
 
-    const embedding = await generateEmbedding(chunks[i]);
+    const batchEmbeddings = await Promise.all(
+      batch.map((chunk) => generateEmbedding(chunk))
+    );
 
-    embeddings.push(embedding);
+    embeddings.push(...batchEmbeddings);
   }
 
   console.log(
