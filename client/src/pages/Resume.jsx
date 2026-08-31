@@ -111,114 +111,85 @@ const handleFileChange = (e) => {
      UPLOAD RESUME
   ========================= */
 
-  const handleUpload = async (e) => {
+const handleUpload = async (e) => {
   e.preventDefault();
 
-  /*
-  -------------------------------------------------------
-  CHECK FILE
-  -------------------------------------------------------
-  */
-
   if (!file) {
-    setError(
-      "Please select a PDF resume first."
-    );
-
+    setError("Please select a PDF resume first.");
     return;
   }
 
-  /*
-  -------------------------------------------------------
-  CHECK LOGIN
-  -------------------------------------------------------
-  */
-
-  const token =
-    localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
   if (!token) {
-    setError(
-      "You are not logged in. Please login again."
-    );
-
+    setError("You are not logged in. Please login again.");
     return;
   }
 
-  /*
-  -------------------------------------------------------
-  START UPLOAD
-  -------------------------------------------------------
-  */
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  if (!apiUrl) {
+    setError("API URL is not configured.");
+    return;
+  }
 
   setUploading(true);
-
   setMessage("");
-
   setError("");
 
-  /*
-  -------------------------------------------------------
-  IMPORTANT
-  -------------------------------------------------------
-  
-  Until the upload succeeds, there is NO resumeId.
-
-  Therefore questions cannot be generated.
-  */
-
-  setResumeId(null);
-
-  setQuestions([]);
-
-  setEvaluation(null);
-
   try {
-    const formData =
-      new FormData();
+    const formData = new FormData();
 
-    formData.append(
-      "resume",
-      file
-    );
+    formData.append("resume", file, file.name);
 
-    const apiUrl =
-      import.meta.env.VITE_API_URL;
+    console.log("================================");
+    console.log("RESUME UPLOAD");
+    console.log("================================");
+    console.log("API URL:", apiUrl);
+    console.log("File:", file.name);
+    console.log("File type:", file.type);
+    console.log("File size:", file.size);
+    console.log("Token exists:", !!token);
 
-    if (!apiUrl) {
-      throw new Error(
-        "API URL is not configured."
-      );
-    }
+    const controller = new AbortController();
 
-    console.log(
-      "Uploading resume to:",
-      `${apiUrl}/api/resumes/upload`
-    );
+    // Give Render/Gemini processing plenty of time.
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 180000);
 
-    const response =
-      await fetch(
+    let response;
+
+    try {
+      response = await fetch(
         `${apiUrl}/api/resumes/upload`,
         {
           method: "POST",
 
           headers: {
-            Authorization:
-              `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
 
           body: formData,
+
+          signal: controller.signal,
         }
       );
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
-    /*
-    -------------------------------------------------------
-    SAFELY READ RESPONSE
-    -------------------------------------------------------
-    */
+    console.log(
+      "Upload response status:",
+      response.status
+    );
 
-    const rawText =
-      await response.text();
+    const rawText = await response.text();
+
+    console.log(
+      "Upload response:",
+      rawText
+    );
 
     let data = {};
 
@@ -228,83 +199,76 @@ const handleFileChange = (e) => {
         : {};
     } catch {
       throw new Error(
-        "The server returned an invalid response. Please try again."
+        `Server returned an invalid response (${response.status}).`
       );
     }
-
-    /*
-    -------------------------------------------------------
-    CHECK HTTP STATUS
-    -------------------------------------------------------
-    */
 
     if (!response.ok) {
       throw new Error(
         data.message ||
-        `Upload failed (${response.status}).`
+        `Upload failed with status ${response.status}.`
       );
     }
 
-    /*
-    -------------------------------------------------------
-    CHECK RESUME ID
-    -------------------------------------------------------
-    */
-
-    const uploadedResumeId =
-      data?.resume?.id;
-
-    if (!uploadedResumeId) {
+    if (!data.resume?.id) {
       throw new Error(
         "Resume uploaded, but the server did not return a resume ID."
       );
     }
 
-    /*
-    -------------------------------------------------------
-    STORE RESUME ID
-    -------------------------------------------------------
-    
-    This ID is required by the question-generation
-    endpoint.
-    */
-
-    setResumeId(
-      uploadedResumeId
+    console.log(
+      "Resume ID:",
+      data.resume.id
     );
-
-    /*
-    -------------------------------------------------------
-    SUCCESS
-    -------------------------------------------------------
-    */
 
     setMessage(
       "Resume uploaded successfully! You can now generate interview questions."
     );
 
-    console.log(
-      "Resume upload successful:",
-      data
-    );
   } catch (error) {
     console.error(
-      "Resume upload error:",
+      "================================"
+    );
+
+    console.error(
+      "RESUME UPLOAD FAILED"
+    );
+
+    console.error(
       error
     );
 
-    /*
-    -------------------------------------------------------
-    FAILED UPLOAD
-    -------------------------------------------------------
-    */
-
-    setResumeId(null);
-
-    setError(
-      error?.message ||
-      "Failed to upload resume. Please try again."
+    console.error(
+      "Error name:",
+      error?.name
     );
+
+    console.error(
+      "Error message:",
+      error?.message
+    );
+
+    console.error(
+      "================================"
+    );
+
+    if (error?.name === "AbortError") {
+      setError(
+        "Resume processing took too long. Please try again with a smaller PDF."
+      );
+    } else if (
+      error?.message === "Failed to fetch"
+    ) {
+      setError(
+        "Could not connect to the HireGPT server. Please check your internet connection and try again."
+      );
+    } else {
+      setError(
+        error?.message ||
+        "Failed to upload resume. Please try again."
+      );
+    }
+
   } finally {
     setUploading(false);
   }

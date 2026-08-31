@@ -60,11 +60,18 @@ PDF FILTER
 */
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype === "application/pdf") {
+  const isPdfMimeType =
+    file.mimetype === "application/pdf";
+
+  const isPdfExtension =
+    path.extname(file.originalname).toLowerCase() ===
+    ".pdf";
+
+  if (isPdfMimeType || isPdfExtension) {
     cb(null, true);
   } else {
     cb(
-      new Error("Only PDF files are allowed"),
+      new Error("Only PDF files are allowed."),
       false
     );
   }
