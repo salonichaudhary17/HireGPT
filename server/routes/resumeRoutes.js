@@ -77,6 +77,13 @@ const upload = multer({
 
 router.post(
   "/upload",
+  (req, res, next) => {
+    console.log("\n🔥 UPLOAD REQUEST RECEIVED");
+    console.log("Method:", req.method);
+    console.log("Origin:", req.headers.origin);
+    console.log("User-Agent:", req.headers["user-agent"]);
+    next();
+  },
   authMiddleware,
   upload.single("resume"),
 
