@@ -2,9 +2,12 @@ import express from "express";
 import { GoogleGenAI } from "@google/genai";
 
 import authMiddleware from "../middleware/authMiddleware.js";
+
 import Resume from "../models/Resume.js";
 
-import { evaluateInterview } from "../services/geminiService.js";
+import {
+  evaluateInterview,
+} from "../services/geminiService.js";
 
 import {
   retrieveRelevantChunks,
@@ -17,7 +20,8 @@ import {
 const router = express.Router();
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+  apiKey:
+    process.env.GEMINI_API_KEY,
 });
 
 /*
@@ -39,34 +43,68 @@ router.post(
       -------------------------------------------------------
       */
 
-      const userId = req.user?.userId;
+      const userId =
+        req.user?.userId;
 
       if (!userId) {
         return res.status(401).json({
           success: false,
+
           message:
             "User authentication required.",
         });
       }
 
+      console.log(
+        "\n================================"
+      );
+
+      console.log(
+        "INTERVIEW QUESTION GENERATION STARTED"
+      );
+
+      console.log(
+        "================================"
+      );
+
+      console.log(
+        "Authenticated user:",
+        userId
+      );
+
       /*
       -------------------------------------------------------
-      REQUIRE RESUME ID
+      FIND USER'S RESUME
       -------------------------------------------------------
-      
-      The frontend receives this ID ONLY after a successful
-      resume upload.
 
-      Therefore a user cannot generate questions simply
-      because an old resume happens to exist in MongoDB.
+      IMPORTANT:
+
+      We DO NOT require resumeId from the frontend.
+
+      This makes the system work across:
+
+      - laptop
+      - phone
+      - different browsers
+      - existing accounts
+      - fresh React sessions
       */
 
-      const {
-        resumeId,
-      } = req.body;
+      const resume =
+        await Resume.findOne({
+          user: userId,
+        }).sort({
+          updatedAt: -1,
+        });
 
-      if (!resumeId) {
-        return res.status(400).json({
+      /*
+      -------------------------------------------------------
+      RESUME NOT FOUND
+      -------------------------------------------------------
+      */
+
+      if (!resume) {
+        return res.status(404).json({
           success: false,
 
           message:
@@ -76,24 +114,22 @@ router.post(
 
       /*
       -------------------------------------------------------
-      FIND EXACT RESUME BELONGING TO USER
+      RESUME ID
       -------------------------------------------------------
       */
 
-      const resume =
-        await Resume.findOne({
-          _id: resumeId,
-          user: userId,
-        });
+      const resumeId =
+        resume._id.toString();
 
-      if (!resume) {
-        return res.status(404).json({
-          success: false,
+      console.log(
+        "Resume ID:",
+        resumeId
+      );
 
-          message:
-            "The uploaded resume could not be found for your account. Please upload your resume again.",
-        });
-      }
+      console.log(
+        "Resume:",
+        resume.fileName
+      );
 
       /*
       -------------------------------------------------------
@@ -115,12 +151,14 @@ router.post(
 
       /*
       -------------------------------------------------------
-      VALIDATE RAG DATA
+      VALIDATE CHUNKS
       -------------------------------------------------------
       */
 
       if (
-        !Array.isArray(resume.chunks) ||
+        !Array.isArray(
+          resume.chunks
+        ) ||
         resume.chunks.length === 0
       ) {
         return res.status(400).json({
@@ -133,20 +171,26 @@ router.post(
 
       /*
       -------------------------------------------------------
-      VALIDATE CHUNKS
+      VALIDATE EMBEDDINGS
       -------------------------------------------------------
       */
 
       const validChunks =
         resume.chunks.filter(
           (chunk) =>
-            typeof chunk.text === "string" &&
+            typeof chunk.text ===
+              "string" &&
             chunk.text.trim() &&
-            Array.isArray(chunk.embedding) &&
-            chunk.embedding.length > 0
+            Array.isArray(
+              chunk.embedding
+            ) &&
+            chunk.embedding.length >
+              0
         );
 
-      if (!validChunks.length) {
+      if (
+        !validChunks.length
+      ) {
         return res.status(400).json({
           success: false,
 
@@ -154,33 +198,6 @@ router.post(
             "Resume embeddings are missing. Please upload your resume again.",
         });
       }
-
-      /*
-      -------------------------------------------------------
-      LOG
-      -------------------------------------------------------
-      */
-
-      console.log("\n================================");
-      console.log(
-        "INTERVIEW QUESTION GENERATION STARTED"
-      );
-      console.log("================================");
-
-      console.log(
-        "Authenticated user:",
-        userId
-      );
-
-      console.log(
-        "Resume ID:",
-        resumeId
-      );
-
-      console.log(
-        "Resume:",
-        resume.fileName
-      );
 
       console.log(
         "Resume characters:",
@@ -230,12 +247,22 @@ companies or experience.
       -------------------------------------------------------
       */
 
+      console.log(
+        "Retrieving relevant resume chunks..."
+      );
+
       const relevantChunks =
         await retrieveRelevantChunks(
           resume,
           ragQuery,
           8
         );
+
+      /*
+      -------------------------------------------------------
+      VALIDATE RETRIEVAL
+      -------------------------------------------------------
+      */
 
       if (
         !relevantChunks ||
@@ -251,7 +278,7 @@ companies or experience.
 
       /*
       -------------------------------------------------------
-      PREPARE RESUME CONTEXT
+      PREPARE CONTEXT
       -------------------------------------------------------
       */
 
@@ -259,7 +286,9 @@ companies or experience.
         relevantChunks
           .map(
             (chunk, index) =>
-              `RESUME CHUNK ${index + 1}:\n${chunk.text}`
+              `RESUME CHUNK ${
+                index + 1
+              }:\n${chunk.text}`
           )
           .join("\n\n");
 
@@ -341,13 +370,19 @@ Example:
       -------------------------------------------------------
       */
 
+      console.log(
+        "Calling Gemini for interview questions..."
+      );
+
       const response =
         await callGeminiWithRetry(
           () =>
             ai.models.generateContent({
-              model: "gemini-3.6-flash",
+              model:
+                "gemini-3.6-flash",
 
-              contents: prompt,
+              contents:
+                prompt,
 
               config: {
                 responseMimeType:
@@ -366,7 +401,10 @@ Example:
 
       let text =
         response.text ||
-        response.candidates?.[0]?.content?.parts?.[0]?.text ||
+        response.candidates?.[0]
+          ?.content
+          ?.parts?.[0]
+          ?.text ||
         "";
 
       text = text.trim();
@@ -407,7 +445,9 @@ Example:
       let questions;
 
       try {
-        questions = JSON.parse(text);
+        questions =
+          JSON.parse(text);
+
       } catch (parseError) {
         console.error(
           "Gemini JSON parsing error:",
@@ -426,24 +466,34 @@ Example:
 
       /*
       -------------------------------------------------------
-      VALIDATE QUESTIONS
+      VALIDATE ARRAY
       -------------------------------------------------------
       */
 
       if (
-        !Array.isArray(questions)
+        !Array.isArray(
+          questions
+        )
       ) {
         throw new Error(
           "Gemini did not return an array of questions."
         );
       }
 
+      /*
+      -------------------------------------------------------
+      VALIDATE QUESTIONS
+      -------------------------------------------------------
+      */
+
       questions =
         questions
           .filter(
             (question) =>
-              typeof question === "string" &&
-              question.trim().length > 0
+              typeof question ===
+                "string" &&
+              question.trim()
+                .length > 0
           )
           .map(
             (question) =>
@@ -490,8 +540,11 @@ Example:
         questions,
 
         resume: {
-          id: resume._id.toString(),
-          fileName: resume.fileName,
+          id:
+            resume._id.toString(),
+
+          fileName:
+            resume.fileName,
         },
 
         retrievedChunks:
@@ -502,11 +555,14 @@ Example:
 
               similarity:
                 Number(
-                  chunk.similarity.toFixed(4)
+                  chunk.similarity.toFixed(
+                    4
+                  )
                 ),
             })
           ),
       });
+
     } catch (error) {
       console.error(
         "\n================================"
@@ -554,7 +610,8 @@ router.post(
       -------------------------------------------------------
       */
 
-      const userId = req.user?.userId;
+      const userId =
+        req.user?.userId;
 
       if (!userId) {
         return res.status(401).json({
@@ -567,7 +624,7 @@ router.post(
 
       /*
       -------------------------------------------------------
-      GET ANSWERS
+      ANSWERS
       -------------------------------------------------------
       */
 
@@ -577,7 +634,9 @@ router.post(
 
       if (
         !answers ||
-        !Array.isArray(answers)
+        !Array.isArray(
+          answers
+        )
       ) {
         return res.status(400).json({
           success: false,
@@ -586,6 +645,12 @@ router.post(
             "Interview answers are required.",
         });
       }
+
+      /*
+      -------------------------------------------------------
+      EXACTLY 10
+      -------------------------------------------------------
+      */
 
       if (
         answers.length !== 10
@@ -608,8 +673,10 @@ router.post(
         answers.some(
           (item) =>
             !item ||
-            typeof item.question !== "string" ||
-            typeof item.answer !== "string"
+            typeof item.question !==
+              "string" ||
+            typeof item.answer !==
+              "string"
         );
 
       if (invalidAnswer) {
@@ -627,11 +694,17 @@ router.post(
       -------------------------------------------------------
       */
 
-      console.log("\n================================");
+      console.log(
+        "\n================================"
+      );
+
       console.log(
         "INTERVIEW EVALUATION STARTED"
       );
-      console.log("================================");
+
+      console.log(
+        "================================"
+      );
 
       console.log(
         "Authenticated user:",
@@ -676,6 +749,7 @@ router.post(
 
         evaluation,
       });
+
     } catch (error) {
       console.error(
         "Interview evaluation error:",
