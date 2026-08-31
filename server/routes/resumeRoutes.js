@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
+import path from "path";
 import { PDFParse } from "pdf-parse";
 
 import Resume from "../models/Resume.js";
@@ -14,11 +15,13 @@ import {
 
 const router = express.Router();
 
-// =====================================================
-// UPLOAD DIRECTORY
-// =====================================================
+/*
+=========================================================
+UPLOAD DIRECTORY
+=========================================================
+*/
 
-const uploadDir = "uploads";
+const uploadDir = path.resolve(process.cwd(), "uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, {
@@ -26,9 +29,11 @@ if (!fs.existsSync(uploadDir)) {
   });
 }
 
-// =====================================================
-// MULTER STORAGE
-// =====================================================
+/*
+=========================================================
+MULTER STORAGE
+=========================================================
+*/
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -36,16 +41,23 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
+    const safeOriginalName = file.originalname.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_"
+    );
+
     const uniqueName =
-      `${Date.now()}-${file.originalname}`;
+      `${Date.now()}-${safeOriginalName}`;
 
     cb(null, uniqueName);
   },
 });
 
-// =====================================================
-// PDF FILTER
-// =====================================================
+/*
+=========================================================
+PDF FILTER
+=========================================================
+*/
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
@@ -58,9 +70,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// =====================================================
-// MULTER
-// =====================================================
+/*
+=========================================================
+MULTER
+=========================================================
+*/
 
 const upload = multer({
   storage,
@@ -71,44 +85,68 @@ const upload = multer({
   },
 });
 
-// =====================================================
-// UPLOAD RESUME
-// =====================================================
+/*
+=========================================================
+UPLOAD RESUME
+=========================================================
+*/
 
 router.post(
   "/upload",
-  (req, res, next) => {
-    console.log("\n🔥 UPLOAD REQUEST RECEIVED");
-    console.log("Method:", req.method);
-    console.log("Origin:", req.headers.origin);
-    console.log("User-Agent:", req.headers["user-agent"]);
-    next();
-  },
+
   authMiddleware,
+
   upload.single("resume"),
 
   async (req, res) => {
-    try {
-      // -------------------------------------------------
-      // CHECK FILE
-      // -------------------------------------------------
+    let newFilePath = null;
 
-      if (!req.file) {
-        return res.status(400).json({
-          message: "Please upload a PDF resume",
+    try {
+      /*
+      -------------------------------------------------------
+      AUTHENTICATED USER
+      -------------------------------------------------------
+      */
+
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          message: "User authentication required.",
         });
       }
 
-      console.log("\n==============================");
-      console.log("RESUME PROCESSING STARTED");
-      console.log("==============================");
+      console.log("\n================================");
+      console.log("RESUME UPLOAD STARTED");
+      console.log("================================");
+      console.log("Authenticated user:", userId);
 
-      // -------------------------------------------------
-      // READ PDF
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      CHECK FILE
+      -------------------------------------------------------
+      */
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "Please select a PDF resume.",
+        });
+      }
+
+      newFilePath = req.file.path;
+
+      console.log("Uploaded file:", req.file.originalname);
+      console.log("Stored file:", newFilePath);
+      console.log("File size:", req.file.size);
+
+      /*
+      -------------------------------------------------------
+      READ PDF
+      -------------------------------------------------------
+      */
 
       const pdfBuffer = fs.readFileSync(
-        req.file.path
+        newFilePath
       );
 
       const parser = new PDFParse({
@@ -120,38 +158,55 @@ router.post(
       await parser.destroy();
 
       const extractedText =
-        pdfData.text.trim();
+        pdfData?.text?.trim() || "";
 
       console.log(
-        "Resume text extracted successfully"
-      );
-
-      console.log(
-        "Characters:",
+        "Extracted resume characters:",
         extractedText.length
       );
 
+      /*
+      -------------------------------------------------------
+      VALIDATE EXTRACTED TEXT
+      -------------------------------------------------------
+      */
+
       if (!extractedText) {
         throw new Error(
-          "Could not extract text from this PDF"
+          "Could not extract text from this PDF. Please upload a text-based PDF resume."
         );
       }
 
-      // -------------------------------------------------
-      // CREATE CHUNKS
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      CREATE CHUNKS
+      -------------------------------------------------------
+      */
 
-      const chunks =
-        createChunks(extractedText);
+      const chunks = createChunks(
+        extractedText
+      );
 
       console.log(
-        "Chunks created:",
+        "Resume chunks created:",
         chunks.length
       );
 
-      // -------------------------------------------------
-      // GENERATE EMBEDDINGS
-      // -------------------------------------------------
+      if (!chunks.length) {
+        throw new Error(
+          "No readable content was found in the resume."
+        );
+      }
+
+      /*
+      -------------------------------------------------------
+      GENERATE EMBEDDINGS
+      -------------------------------------------------------
+      */
+
+      console.log(
+        "Generating resume embeddings..."
+      );
 
       const embeddings =
         await generateEmbeddings(chunks);
@@ -161,9 +216,38 @@ router.post(
         embeddings.length
       );
 
-      // -------------------------------------------------
-      // PREPARE RAG CHUNKS
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      VALIDATE EMBEDDINGS
+      -------------------------------------------------------
+      */
+
+      if (
+        !Array.isArray(embeddings) ||
+        embeddings.length !== chunks.length
+      ) {
+        throw new Error(
+          "Failed to generate embeddings for the complete resume."
+        );
+      }
+
+      const invalidEmbedding = embeddings.find(
+        (embedding) =>
+          !Array.isArray(embedding) ||
+          embedding.length === 0
+      );
+
+      if (invalidEmbedding) {
+        throw new Error(
+          "One or more resume embeddings are invalid."
+        );
+      }
+
+      /*
+      -------------------------------------------------------
+      PREPARE RAG DATA
+      -------------------------------------------------------
+      */
 
       const ragChunks = chunks.map(
         (text, index) => ({
@@ -173,46 +257,44 @@ router.post(
         })
       );
 
-      // -------------------------------------------------
-      // FIND EXISTING RESUME
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      FIND EXISTING RESUME
+      -------------------------------------------------------
+      */
 
       const existingResume =
         await Resume.findOne({
-          user: req.user.userId,
+          user: userId,
         });
 
-      // -------------------------------------------------
-      // DELETE OLD PDF
-      // -------------------------------------------------
+      const oldFilePath =
+        existingResume?.filePath || null;
 
-      if (
-        existingResume &&
-        existingResume.filePath
-      ) {
-        if (
-          fs.existsSync(
-            existingResume.filePath
-          )
-        ) {
-          fs.unlinkSync(
-            existingResume.filePath
-          );
-        }
-      }
+      /*
+      -------------------------------------------------------
+      SAVE / UPDATE RESUME
+      -------------------------------------------------------
+      
+      IMPORTANT:
+      We DO NOT delete the old file before saving.
 
-      // -------------------------------------------------
-      // UPDATE EXISTING RESUME
-      // -------------------------------------------------
+      This prevents an existing user's old resume from
+      disappearing if the database update fails.
+      */
 
       let resume;
 
       if (existingResume) {
+        console.log(
+          "Existing resume found. Updating it..."
+        );
+
         existingResume.fileName =
           req.file.originalname;
 
         existingResume.filePath =
-          req.file.path;
+          newFilePath;
 
         existingResume.extractedText =
           extractedText;
@@ -222,22 +304,24 @@ router.post(
 
         resume =
           await existingResume.save();
-      }
 
-      // -------------------------------------------------
-      // CREATE NEW RESUME
-      // -------------------------------------------------
+        console.log(
+          "Existing resume updated successfully."
+        );
+      } else {
+        console.log(
+          "No existing resume found. Creating new resume..."
+        );
 
-      else {
         resume =
           await Resume.create({
-            user: req.user.userId,
+            user: userId,
 
             fileName:
               req.file.originalname,
 
             filePath:
-              req.file.path,
+              newFilePath,
 
             extractedText:
               extractedText,
@@ -245,44 +329,67 @@ router.post(
             chunks:
               ragChunks,
           });
+
+        console.log(
+          "New resume created successfully."
+        );
       }
 
-      // -------------------------------------------------
-      // SUCCESS
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      DELETE OLD FILE ONLY AFTER DATABASE SUCCESS
+      -------------------------------------------------------
+      */
 
-      console.log(
-        "Resume + RAG data saved successfully"
-      );
+      if (
+        oldFilePath &&
+        oldFilePath !== newFilePath &&
+        fs.existsSync(oldFilePath)
+      ) {
+        try {
+          fs.unlinkSync(oldFilePath);
 
-      console.log(
-        "Resume ID:",
-        resume._id
-      );
+          console.log(
+            "Old resume file deleted successfully."
+          );
+        } catch (deleteError) {
+          console.warn(
+            "Could not delete old resume file:",
+            deleteError.message
+          );
+        }
+      }
 
+      /*
+      -------------------------------------------------------
+      SUCCESS
+      -------------------------------------------------------
+      */
+
+      console.log("\n================================");
+      console.log("RESUME UPLOAD COMPLETED");
+      console.log("================================");
+
+      console.log("Resume ID:", resume._id);
       console.log(
         "Stored chunks:",
         resume.chunks.length
       );
 
-      console.log("\n==============================");
-      console.log(
-        "RESUME PROCESSING COMPLETED"
-      );
-      console.log("==============================\n");
+      return res.status(201).json({
+        success: true,
 
-      res.status(201).json({
         message:
-          "Resume uploaded, parsed and embedded successfully",
+          "Resume uploaded successfully. You can now generate interview questions.",
 
         resume: {
-          id: resume._id,
+          id: resume._id.toString(),
 
           fileName:
             resume.fileName,
 
           extractedTextLength:
-            extractedText.length,
+            resume.extractedText.length,
 
           chunks:
             resume.chunks.length,
@@ -293,102 +400,263 @@ router.post(
       });
     } catch (error) {
       console.error(
-        "Resume upload error:",
+        "\n================================"
+      );
+      console.error(
+        "RESUME UPLOAD ERROR"
+      );
+      console.error(
+        "================================"
+      );
+
+      console.error(
         error
       );
 
-      // -------------------------------------------------
-      // DELETE UPLOADED FILE ON FAILURE
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      DELETE ONLY THE NEW FILE IF PROCESSING FAILED
+      -------------------------------------------------------
+      */
 
       if (
-        req.file &&
-        req.file.path
+        newFilePath &&
+        fs.existsSync(newFilePath)
       ) {
-        if (
-          fs.existsSync(
-            req.file.path
-          )
-        ) {
-          fs.unlinkSync(
-            req.file.path
+        try {
+          fs.unlinkSync(newFilePath);
+
+          console.log(
+            "Failed upload file removed."
+          );
+        } catch (deleteError) {
+          console.error(
+            "Could not remove failed upload:",
+            deleteError.message
           );
         }
       }
 
-      res.status(500).json({
+      /*
+      -------------------------------------------------------
+      DUPLICATE KEY ERROR
+      -------------------------------------------------------
+      */
+
+      if (error?.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "A resume already exists for this account. Please try uploading again.",
+        });
+      }
+
+      /*
+      -------------------------------------------------------
+      CLIENT-FRIENDLY ERROR
+      -------------------------------------------------------
+      */
+
+      return res.status(500).json({
+        success: false,
+
         message:
-          error.message ||
-          "Failed to upload resume",
+          error?.message ||
+          "Failed to upload resume. Please try again.",
       });
     }
   }
 );
 
-// =====================================================
-// RAG RETRIEVAL
-// =====================================================
+/*
+=========================================================
+GET CURRENT USER'S RESUME
+=========================================================
+*/
 
-router.post(
-  "/retrieve",
+router.get(
+  "/me",
   authMiddleware,
   async (req, res) => {
     try {
-      const { query, topK = 3 } = req.body;
+      const userId = req.user?.userId;
 
-      // -------------------------------------------------
-      // VALIDATE QUERY
-      // -------------------------------------------------
-
-      if (!query || typeof query !== "string") {
-        return res.status(400).json({
-          message: "Query is required",
+      if (!userId) {
+        return res.status(401).json({
+          message: "User authentication required.",
         });
       }
 
-      // -------------------------------------------------
-      // FIND USER'S RESUME
-      // -------------------------------------------------
-
-      const resume = await Resume.findOne({
-        user: req.user.userId,
-      });
+      const resume =
+        await Resume.findOne({
+          user: userId,
+        }).select(
+          "_id fileName extractedText chunks createdAt updatedAt"
+        );
 
       if (!resume) {
         return res.status(404).json({
-          message: "Resume not found. Please upload a resume first.",
+          success: false,
+          message:
+            "Resume not found. Please upload your resume first.",
         });
       }
 
-      // -------------------------------------------------
-      // RETRIEVE RELEVANT CHUNKS
-      // -------------------------------------------------
+      return res.status(200).json({
+        success: true,
+
+        resume: {
+          id: resume._id.toString(),
+
+          fileName:
+            resume.fileName,
+
+          extractedTextLength:
+            resume.extractedText?.length || 0,
+
+          chunks:
+            resume.chunks?.length || 0,
+
+          createdAt:
+            resume.createdAt,
+
+          updatedAt:
+            resume.updatedAt,
+        },
+      });
+    } catch (error) {
+      console.error(
+        "Fetch resume error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Failed to fetch your resume.",
+      });
+    }
+  }
+);
+
+/*
+=========================================================
+RAG RETRIEVAL
+=========================================================
+*/
+
+router.post(
+  "/retrieve",
+
+  authMiddleware,
+
+  async (req, res) => {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        return res.status(401).json({
+          message: "User authentication required.",
+        });
+      }
+
+      const {
+        query,
+        topK = 3,
+      } = req.body;
+
+      /*
+      -------------------------------------------------------
+      VALIDATE QUERY
+      -------------------------------------------------------
+      */
+
+      if (
+        !query ||
+        typeof query !== "string" ||
+        !query.trim()
+      ) {
+        return res.status(400).json({
+          message: "Query is required.",
+        });
+      }
+
+      /*
+      -------------------------------------------------------
+      FIND USER'S RESUME
+      -------------------------------------------------------
+      */
+
+      const resume =
+        await Resume.findOne({
+          user: userId,
+        });
+
+      if (!resume) {
+        return res.status(404).json({
+          message:
+            "Resume not found. Please upload a resume first.",
+        });
+      }
+
+      /*
+      -------------------------------------------------------
+      CHECK RAG DATA
+      -------------------------------------------------------
+      */
+
+      if (
+        !resume.chunks ||
+        resume.chunks.length === 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Resume RAG data is not available. Please upload your resume again.",
+        });
+      }
+
+      /*
+      -------------------------------------------------------
+      RETRIEVE RELEVANT CHUNKS
+      -------------------------------------------------------
+      */
 
       const relevantChunks =
         await retrieveRelevantChunks(
           resume,
-          query,
+          query.trim(),
           topK
         );
 
-      // -------------------------------------------------
-      // RETURN RESULTS
-      // -------------------------------------------------
+      /*
+      -------------------------------------------------------
+      RETURN RESULTS
+      -------------------------------------------------------
+      */
 
       return res.status(200).json({
-        message: "Relevant resume chunks retrieved successfully",
+        success: true,
+
+        message:
+          "Relevant resume chunks retrieved successfully.",
 
         query,
 
-        results: relevantChunks.map((chunk) => ({
-          text: chunk.text,
-          chunkIndex: chunk.chunkIndex,
-          similarity: Number(
-            chunk.similarity.toFixed(4)
-          ),
-        })),
-      });
+        results:
+          relevantChunks.map(
+            (chunk) => ({
+              text: chunk.text,
 
+              chunkIndex:
+                chunk.chunkIndex,
+
+              similarity:
+                Number(
+                  chunk.similarity.toFixed(4)
+                ),
+            })
+          ),
+      });
     } catch (error) {
       console.error(
         "RAG retrieval error:",
@@ -396,9 +664,11 @@ router.post(
       );
 
       return res.status(500).json({
+        success: false,
+
         message:
-          error.message ||
-          "Failed to retrieve relevant resume chunks",
+          error?.message ||
+          "Failed to retrieve relevant resume chunks.",
       });
     }
   }

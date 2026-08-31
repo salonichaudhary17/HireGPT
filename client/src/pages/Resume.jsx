@@ -6,8 +6,10 @@ import "./Resume.css";
 function Resume() {
   const [navOpen, setNavOpen] = useState(false);
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(false);
+const [resumeId, setResumeId] = useState(null);
+
+const [uploading, setUploading] = useState(false);
+const [generating, setGenerating] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -38,128 +40,445 @@ function Resume() {
      FILE CHANGE
   ========================= */
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+const handleFileChange = (e) => {
+  const selectedFile = e.target.files?.[0];
 
-    setMessage("");
-    setError("");
+  setMessage("");
+  setError("");
 
-    if (!selectedFile) {
-      setFile(null);
-      return;
-    }
+  /*
+  -------------------------------------------------------
+  NEW FILE SELECTED
+  -------------------------------------------------------
+  
+  The previously uploaded resume is no longer considered
+  the active resume until this new file is successfully
+  uploaded.
+  */
 
-    if (selectedFile.type !== "application/pdf") {
-      setError("Please select a PDF file.");
-      setFile(null);
-      return;
-    }
+  setResumeId(null);
+  setQuestions([]);
+  setEvaluation(null);
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      setError("PDF must be smaller than 5 MB.");
-      setFile(null);
-      return;
-    }
+  if (!selectedFile) {
+    setFile(null);
+    return;
+  }
 
-    setFile(selectedFile);
-  };
+  /*
+  -------------------------------------------------------
+  CHECK FILE TYPE
+  -------------------------------------------------------
+  */
+
+  if (
+    selectedFile.type !== "application/pdf"
+  ) {
+    setError(
+      "Please select a PDF resume."
+    );
+
+    setFile(null);
+    return;
+  }
+
+  /*
+  -------------------------------------------------------
+  CHECK FILE SIZE
+  -------------------------------------------------------
+  */
+
+  if (
+    selectedFile.size >
+    5 * 1024 * 1024
+  ) {
+    setError(
+      "PDF must be smaller than 5 MB."
+    );
+
+    setFile(null);
+    return;
+  }
+
+  setFile(selectedFile);
+
+  setMessage(
+    "Resume selected. Click Upload Resume to continue."
+  );
+};  
 
   /* =========================
      UPLOAD RESUME
   ========================= */
 
   const handleUpload = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!file) {
-      setError("Please select a PDF resume first.");
-      return;
+  /*
+  -------------------------------------------------------
+  CHECK FILE
+  -------------------------------------------------------
+  */
+
+  if (!file) {
+    setError(
+      "Please select a PDF resume first."
+    );
+
+    return;
+  }
+
+  /*
+  -------------------------------------------------------
+  CHECK LOGIN
+  -------------------------------------------------------
+  */
+
+  const token =
+    localStorage.getItem("token");
+
+  if (!token) {
+    setError(
+      "You are not logged in. Please login again."
+    );
+
+    return;
+  }
+
+  /*
+  -------------------------------------------------------
+  START UPLOAD
+  -------------------------------------------------------
+  */
+
+  setUploading(true);
+
+  setMessage("");
+
+  setError("");
+
+  /*
+  -------------------------------------------------------
+  IMPORTANT
+  -------------------------------------------------------
+  
+  Until the upload succeeds, there is NO resumeId.
+
+  Therefore questions cannot be generated.
+  */
+
+  setResumeId(null);
+
+  setQuestions([]);
+
+  setEvaluation(null);
+
+  try {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "resume",
+      file
+    );
+
+    const apiUrl =
+      import.meta.env.VITE_API_URL;
+
+    if (!apiUrl) {
+      throw new Error(
+        "API URL is not configured."
+      );
     }
 
-    const token = localStorage.getItem("token");
+    console.log(
+      "Uploading resume to:",
+      `${apiUrl}/api/resumes/upload`
+    );
 
-    if (!token) {
-      setError("You are not logged in.");
-      return;
-    }
-
-    setUploading(true);
-    setMessage("");
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("resume", file);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/resumes/upload`,
+    const response =
+      await fetch(
+        `${apiUrl}/api/resumes/upload`,
         {
           method: "POST",
+
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization:
+              `Bearer ${token}`,
           },
+
           body: formData,
         }
       );
 
-      const data = await response.json();
+    /*
+    -------------------------------------------------------
+    SAFELY READ RESPONSE
+    -------------------------------------------------------
+    */
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to upload resume"
-        );
-      }
+    const rawText =
+      await response.text();
 
-      setMessage("Resume uploaded successfully!");
-    } catch (error) {
-      console.error("Resume upload error:", error);
-      setError(error.message);
-    } finally {
-      setUploading(false);
+    let data = {};
+
+    try {
+      data = rawText
+        ? JSON.parse(rawText)
+        : {};
+    } catch {
+      throw new Error(
+        "The server returned an invalid response. Please try again."
+      );
     }
-  };
+
+    /*
+    -------------------------------------------------------
+    CHECK HTTP STATUS
+    -------------------------------------------------------
+    */
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        `Upload failed (${response.status}).`
+      );
+    }
+
+    /*
+    -------------------------------------------------------
+    CHECK RESUME ID
+    -------------------------------------------------------
+    */
+
+    const uploadedResumeId =
+      data?.resume?.id;
+
+    if (!uploadedResumeId) {
+      throw new Error(
+        "Resume uploaded, but the server did not return a resume ID."
+      );
+    }
+
+    /*
+    -------------------------------------------------------
+    STORE RESUME ID
+    -------------------------------------------------------
+    
+    This ID is required by the question-generation
+    endpoint.
+    */
+
+    setResumeId(
+      uploadedResumeId
+    );
+
+    /*
+    -------------------------------------------------------
+    SUCCESS
+    -------------------------------------------------------
+    */
+
+    setMessage(
+      "Resume uploaded successfully! You can now generate interview questions."
+    );
+
+    console.log(
+      "Resume upload successful:",
+      data
+    );
+  } catch (error) {
+    console.error(
+      "Resume upload error:",
+      error
+    );
+
+    /*
+    -------------------------------------------------------
+    FAILED UPLOAD
+    -------------------------------------------------------
+    */
+
+    setResumeId(null);
+
+    setError(
+      error?.message ||
+      "Failed to upload resume. Please try again."
+    );
+  } finally {
+    setUploading(false);
+  }
+};
 
   /* =========================
      GENERATE QUESTIONS
   ========================= */
 
-  const handleGenerateQuestions = async () => {
-  const token = localStorage.getItem("token");
+const handleGenerateQuestions = async () => {
+  /*
+  =======================================================
+  RESUME MUST BE UPLOADED FIRST
+  =======================================================
+  */
 
-  if (!token) {
-    setError("You are not logged in.");
+  if (!resumeId) {
+    setError(
+      "Please upload your resume first."
+    );
+
+    setMessage("");
+
     return;
   }
 
+  /*
+  =======================================================
+  CHECK TOKEN
+  =======================================================
+  */
+
+  const token =
+    localStorage.getItem("token");
+
+  if (!token) {
+    setError(
+      "You are not logged in. Please login again."
+    );
+
+    return;
+  }
+
+  /*
+  =======================================================
+  START GENERATION
+  =======================================================
+  */
+
   setGenerating(true);
+
   setMessage("");
+
   setError("");
+
   setQuestions([]);
+
   setEvaluation(null);
 
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/ai/generate-questions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const apiUrl =
+      import.meta.env.VITE_API_URL;
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (!apiUrl) {
       throw new Error(
-        data.message || "Failed to generate questions"
+        "API URL is not configured."
       );
     }
 
-    setQuestions(data.questions || []);
+    console.log(
+      "Generating questions for resume:",
+      resumeId
+    );
+
+    /*
+    -------------------------------------------------------
+    SEND RESUME ID
+    -------------------------------------------------------
+    */
+
+    const response =
+      await fetch(
+        `${apiUrl}/api/ai/generate-questions`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            resumeId,
+          }),
+        }
+      );
+
+    /*
+    -------------------------------------------------------
+    SAFELY READ RESPONSE
+    -------------------------------------------------------
+    */
+
+    const rawText =
+      await response.text();
+
+    let data = {};
+
+    try {
+      data = rawText
+        ? JSON.parse(rawText)
+        : {};
+    } catch {
+      throw new Error(
+        "The server returned an invalid response. Please try again."
+      );
+    }
+
+    /*
+    -------------------------------------------------------
+    CHECK RESPONSE
+    -------------------------------------------------------
+    */
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        `Failed to generate questions (${response.status}).`
+      );
+    }
+
+    /*
+    -------------------------------------------------------
+    VALIDATE QUESTIONS
+    -------------------------------------------------------
+    */
+
+    if (
+      !Array.isArray(
+        data.questions
+      ) ||
+      data.questions.length === 0
+    ) {
+      throw new Error(
+        "The AI did not return any interview questions."
+      );
+    }
+
+    /*
+    -------------------------------------------------------
+    STORE QUESTIONS
+    -------------------------------------------------------
+    */
+
+    setQuestions(
+      data.questions
+    );
+
+    /*
+    -------------------------------------------------------
+    SUCCESS
+    -------------------------------------------------------
+    */
 
     setMessage(
       "Interview questions generated successfully!"
+    );
+
+    console.log(
+      "Questions generated:",
+      data.questions
     );
   } catch (error) {
     console.error(
@@ -167,7 +486,12 @@ function Resume() {
       error
     );
 
-    setError(error.message);
+    setQuestions([]);
+
+    setError(
+      error?.message ||
+      "Failed to generate interview questions."
+    );
   } finally {
     setGenerating(false);
   }
@@ -859,31 +1183,37 @@ const handleDownloadReport = () => {
               {/* UPLOAD */}
 
               <button
-                type="submit"
-                disabled={
-                  uploading || !file
-                }
-                className="resume-btn primary"
-              >
-                {uploading
-                  ? "Uploading..."
-                  : "Upload Resume"}
-              </button>
+  type="submit"
+  disabled={
+    uploading ||
+    generating ||
+    !file
+  }
+  className="resume-btn primary"
+>
+  {uploading
+    ? "Uploading..."
+    : "Upload Resume"}
+</button>
 
               {/* GENERATE */}
 
               <button
-                type="button"
-                onClick={
-                  handleGenerateQuestions
-                }
-                disabled={generating}
-                className="resume-btn outline"
-              >
-                {generating
-                  ? "Generating Questions..."
-                  : "Generate Interview Questions"}
-              </button>
+  type="button"
+  onClick={handleGenerateQuestions}
+  disabled={
+    generating ||
+    uploading ||
+    !resumeId
+  }
+  className="resume-btn outline"
+>
+  {generating
+    ? "Generating Questions..."
+    : !resumeId
+    ? "Upload Resume First"
+    : "Generate Interview Questions"}
+</button>
 
             </form>
 
