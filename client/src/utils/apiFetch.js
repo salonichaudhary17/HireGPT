@@ -4,28 +4,36 @@ apiFetch
 
 A drop-in replacement for `fetch()` that:
 
-1. Adds a timeout, so a hung request fails with a clear
-   message instead of the tab just sitting there.
+1. Adds a timeout per attempt, so a hung request fails with
+   a clear message instead of the tab just sitting there.
 
 2. Retries automatically on a pure network failure
-   ("Failed to fetch" / TypeError). This is what you hit
-   most often on Render's free tier: the backend spins
-   down after ~15 minutes of no traffic, and the very
-   first request that wakes it back up sometimes drops
-   instead of just being slow. A short retry with backoff
-   fixes that without the user having to click twice.
+   ("Failed to fetch" / TypeError / timeout). This is what
+   you hit on Render's free tier: the backend spins down
+   after ~15 minutes of no traffic, and waking it back up
+   can take 30-60 seconds. A short retry isn't enough to
+   cover that, so this backs off across several attempts
+   before giving up.
 
 3. Never retries on a real HTTP error response (400, 401,
-   500, etc) — those are the server actually responding,
-   so retrying won't change anything and we want the real
-   error message to reach the UI immediately.
+   500, etc) — those mean the server IS awake and actually
+   answered, so retrying won't help; we want that error to
+   reach the UI immediately.
+
+4. Accepts an onRetry callback so the UI can show
+   "Waking up the server..." instead of just spinning.
 =========================================================
 */
 
 export async function apiFetch(
   url,
   options = {},
-  { retries = 2, retryDelayMs = 3000, timeoutMs = 45000 } = {}
+  {
+    retries = 4,
+    retryDelayMs = 4000,
+    timeoutMs = 20000,
+    onRetry,
+  } = {}
 ) {
   let lastError;
 
@@ -45,8 +53,8 @@ export async function apiFetch(
 
       clearTimeout(timer);
 
-      // We got a real response from the server (even if it's
-      // an error status) — stop retrying, hand it back.
+      // Got a real response from the server (even an error
+      // status) — stop retrying, hand it back as-is.
       return response;
     } catch (error) {
       clearTimeout(timer);
@@ -69,6 +77,10 @@ export async function apiFetch(
         }). The server may be waking up. Retrying in ${retryDelayMs}ms...`
       );
 
+      if (typeof onRetry === "function") {
+        onRetry(attempt + 1, retries + 1);
+      }
+
       await new Promise((resolve) =>
         setTimeout(resolve, retryDelayMs)
       );
@@ -76,13 +88,26 @@ export async function apiFetch(
   }
 
   // Every attempt failed at the network level.
-  if (lastError?.name === "AbortError") {
-    throw new Error(
-      "The server took too long to respond. It may be waking up from sleep — please try again in a moment."
-    );
-  }
-
   throw new Error(
-    "Could not reach the server. It may be waking up (this can take up to a minute on the first try) — please try again."
+    "Could not reach the server after several tries. It may still be waking up from sleep — please wait ~30 seconds and try again."
   );
+}
+
+/*
+=========================================================
+wakeServer
+
+Fire-and-forget ping to the health endpoint. Call this the
+moment the Resume page mounts (before the user even picks
+a file), so the free-tier instance is already spinning up
+in the background by the time they hit Upload.
+=========================================================
+*/
+
+export function wakeServer(apiUrl) {
+  if (!apiUrl) return;
+
+  fetch(`${apiUrl}/api/health`).catch(() => {
+    // Ignore — this is just a best-effort warm-up ping.
+  });
 }
