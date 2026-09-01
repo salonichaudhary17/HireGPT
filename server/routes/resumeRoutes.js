@@ -94,6 +94,76 @@ const upload = multer({
 
 /*
 =========================================================
+SAFE MULTER WRAPPER
+
+Calling upload.single(...) directly as route middleware
+means any error it throws (wrong file type, file too big,
+disk write failure) falls through to Express's default
+error handling. On a slow connection that can abort the
+socket mid-upload instead of cleanly finishing the response
+— which is exactly what shows up in the browser as
+"Failed to fetch" instead of a readable error message.
+
+Wrapping it ourselves guarantees we always fully drain the
+request and always send back real JSON.
+=========================================================
+*/
+
+function safeUploadSingle(req, res, next) {
+  upload.single("resume")(req, res, (err) => {
+    if (!err) {
+      return next();
+    }
+
+    console.error("MULTER ERROR:", err.message);
+
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          success: false,
+          message: "PDF must be smaller than 5 MB.",
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: `Upload error: ${err.message}`,
+      });
+    }
+
+    // Errors thrown from fileFilter (e.g. "Only PDF files are allowed.")
+    return res.status(400).json({
+      success: false,
+      message: err.message || "Only PDF files are allowed.",
+    });
+  });
+}
+
+/*
+=========================================================
+HELPER: RUN A PROMISE WITH A HARD TIME LIMIT
+
+If Gemini is slow/overloaded, we want to fail fast with a
+clean JSON error rather than let the request hang until
+Render's proxy (or the browser) kills the connection, which
+shows up to the user as "Failed to fetch".
+=========================================================
+*/
+
+function withTimeout(promise, ms, message) {
+  let timer;
+
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+
+  return Promise.race([promise, timeout]).finally(() =>
+    clearTimeout(timer)
+  );
+}
+
+/*
+=========================================================
 UPLOAD RESUME
 =========================================================
 */
@@ -103,7 +173,7 @@ router.post(
 
   authMiddleware,
 
-  upload.single("resume"),
+  safeUploadSingle,
 
   async (req, res) => {
     let newFilePath = null;
@@ -160,7 +230,11 @@ router.post(
         data: pdfBuffer,
       });
 
-      const pdfData = await parser.getText();
+      const pdfData = await withTimeout(
+        parser.getText(),
+        30000,
+        "Reading the PDF took too long. Please try a smaller or simpler PDF."
+      );
 
       await parser.destroy();
 
@@ -215,8 +289,11 @@ router.post(
         "Generating resume embeddings..."
       );
 
-      const embeddings =
-        await generateEmbeddings(chunks);
+      const embeddings = await withTimeout(
+        generateEmbeddings(chunks),
+        60000,
+        "Generating embeddings for your resume took too long. Please try again."
+      );
 
       console.log(
         "Embeddings generated:",
@@ -282,7 +359,7 @@ router.post(
       -------------------------------------------------------
       SAVE / UPDATE RESUME
       -------------------------------------------------------
-      
+
       IMPORTANT:
       We DO NOT delete the old file before saving.
 
@@ -464,13 +541,15 @@ router.post(
       -------------------------------------------------------
       */
 
-      return res.status(500).json({
-        success: false,
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
 
-        message:
-          error?.message ||
-          "Failed to upload resume. Please try again.",
-      });
+          message:
+            error?.message ||
+            "Failed to upload resume. Please try again.",
+        });
+      }
     }
   }
 );

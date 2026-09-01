@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import "./Resume.css";
+import { apiFetch } from "../utils/apiFetch";
 
 function Resume() {
   /*
@@ -122,7 +123,7 @@ function Resume() {
         );
 
         const response =
-          await fetch(
+          await apiFetch(
             `${apiUrl}/api/resumes/me`,
             {
               method: "GET",
@@ -493,8 +494,8 @@ function Resume() {
       -------------------------------------------------------
       */
 
-      const response =
-        await fetch(
+        const response =
+        await apiFetch(
           `${apiUrl}/api/resumes/upload`,
           {
             method: "POST",
@@ -505,7 +506,8 @@ function Resume() {
             },
 
             body: formData,
-          }
+          },
+          { timeoutMs: 90000 } // uploads/embeddings can take longer than a plain GET
         );
 
       /*
