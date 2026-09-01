@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import jsPDF from "jspdf";
 import "./Resume.css";
-import { apiFetch } from "../utils/apiFetch";
+import { apiFetch, wakeServer } from "../utils/apiFetch";
+
 
 function Resume() {
   /*
@@ -79,6 +80,10 @@ function Resume() {
 
   const apiUrl =
     import.meta.env.VITE_API_URL;
+
+  useEffect(() => {
+    wakeServer(apiUrl);
+  }, [apiUrl]);
 
   /*
   =========================================================
@@ -732,7 +737,7 @@ function Resume() {
         */
 
         const response =
-          await fetch(
+          await apiFetch(
             `${apiUrl}/api/ai/generate-questions`,
             {
               method: "POST",
@@ -746,7 +751,8 @@ function Resume() {
               },
 
               body: JSON.stringify({}),
-            }
+            },
+            { timeoutMs: 60000 }
           );
 
         /*
@@ -977,7 +983,7 @@ function Resume() {
 
       try {
         const response =
-          await fetch(
+          await apiFetch(
             `${apiUrl}/api/ai/evaluate`,
             {
               method: "POST",
@@ -994,7 +1000,8 @@ function Resume() {
                 answers:
                   updatedAnswers,
               }),
-            }
+            },
+            { timeoutMs: 60000 }
           );
 
         const rawText =
