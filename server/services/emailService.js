@@ -15,6 +15,14 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+transporter.verify()
+  .then(() => {
+    console.log("✅ Ethereal SMTP connection successful");
+  })
+  .catch((error) => {
+    console.error("❌ Ethereal SMTP connection failed:");
+    console.error(error.message);
+});
 
 // Core sender. Never throws — logs and swallows errors so a broken
 // email config never breaks the actual application/job flow.
